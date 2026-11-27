@@ -229,13 +229,17 @@ def _burst(d, cx, cy, r, color, n=8):
     d.polygon(pts, fill=color, outline=ILL_INK)
 
 def _cloud(d, x, y, s, color):
-    d.ellipse([x, y, x + s, y + s * 0.6], fill=color)
-    d.ellipse([x + s * 0.5, y - s * 0.25, x + s * 1.5, y + s * 0.35], fill=color)
-    d.ellipse([x + s * 1.0, y, x + s * 2.0, y + s * 0.6], fill=color)
+    # Punuk tengah digeser ke bawah agar awan tidak pernah melewati y
+    # (tepi atas kotak gambar).
+    d.ellipse([x, y + s * 0.25, x + s, y + s * 0.85], fill=color)
+    d.ellipse([x + s * 0.5, y, x + s * 1.5, y + s * 0.6], fill=color)
+    d.ellipse([x + s * 1.0, y + s * 0.25, x + s * 2.0, y + s * 0.85], fill=color)
 
 def _smoke(d, x, y, s, color=ILL_SMOKE):
-    for dx, dy, r in [(0, 0, 0.55), (0.5, -0.35, 0.7), (1.1, -0.1, 0.6),
-                      (0.3, -0.8, 0.5), (0.9, -0.9, 0.45)]:
+    # Gugus asap digeser ke bawah 0.9*s agar tidak ada gumpalan yang melewati
+    # y (tepi atas kotak gambar) dan menyentuh teks di atasnya.
+    for dx, dy, r in [(0, 0.9, 0.55), (0.5, 0.55, 0.7), (1.1, 0.8, 0.6),
+                      (0.3, 0.1, 0.5), (0.9, 0.0, 0.45)]:
         d.ellipse([x + dx * s, y + dy * s, x + (dx + r) * s, y + (dy + r) * s],
                   fill=color)
 
@@ -683,9 +687,17 @@ def status_pill(d, x, y, width, status, fsize=10):
     d.text((x + width - pw + (pw - tw) / 2, y + 3), status, font=sf, fill=INK)
     return pw
 
-def draw_story_image(d, x, y, w, h, num, hook, hook_size):
-    """Kotak gambar: ilustrasi + pita hook di tepi bawah."""
-    ILLUSTRATIONS[num](d, x, y, w, h)
+def draw_story_image(img, d, x, y, w, h, num, hook, hook_size):
+    """Kotak gambar: ilustrasi + pita hook di tepi bawah.
+
+    Ilustrasi digambar di lapis sendiri lalu ditempel, supaya tidak ada
+    yang meluber keluar kotak: asap _smoke naik ~0,9s di atas jangkarnya
+    dan titiknya pernah menempel pada teks kartu di atasnya (QA kritikus 2).
+    """
+    layer = Image.new("RGB", (int(w), int(h)), PAPER)
+    dl = ImageDraw.Draw(layer)
+    ILLUSTRATIONS[num](dl, 0, 0, int(w), int(h))
+    img.paste(layer, (int(x), int(y)))
     d.rectangle([x, y, x + w - 1, y + h - 1], outline=LINE, width=1)
     hh = hook_size + 10
     d.rectangle([x, y + h - hh, x + w - 1, y + h - 1], fill=CHARCOAL)
@@ -697,10 +709,10 @@ def draw_story_image(d, x, y, w, h, num, hook, hook_size):
         raise FitFail(f"hook terlalu panjang: {hook!r}")
     d.text((x + 10, y + h - hh + 5), ht, font=hf, fill=WHITE)
 
-def draw_hero(d, x, y, w, story, g):
+def draw_hero(img, d, x, y, w, story, g):
     num, kicker, status, title, dek, src, hook, reg = story
     img_h = g["hero_img"]
-    draw_story_image(d, x, y, w, img_h, num, hook, 15)
+    draw_story_image(img, d, x, y, w, img_h, num, hook, 15)
     yy = y + img_h + 6
     pw = status_pill(d, x, yy, w, status, 10)
     kf = font(SANS_B, 12)
@@ -719,10 +731,10 @@ def draw_hero(d, x, y, w, story, g):
     d.text((x, yy), "Source: " + src, font=sf, fill=MUTED)
     return yy + 12
 
-def draw_card(d, x, y, w, story, g):
+def draw_card(img, d, x, y, w, story, g):
     num, kicker, status, title, dek, src, hook, reg = story
     img_h = g["card_img"]
-    draw_story_image(d, x, y, w, img_h, num, hook, 12)
+    draw_story_image(img, d, x, y, w, img_h, num, hook, 12)
     yy = y + img_h + 5
     pw = status_pill(d, x, yy, w, status, 9)
     kf = font(SANS_B, 10)
@@ -856,7 +868,7 @@ def render(layout, land, out_path):
     colw = (CW - 2 * 10) / 3
     y_hero_end = y
     for i, st in enumerate(HEROES):
-        ye = draw_hero(d, MARGIN + i * (colw + 10), y, colw, st, g)
+        ye = draw_hero(img, d, MARGIN + i * (colw + 10), y, colw, st, g)
         y_hero_end = max(y_hero_end, ye)
     y = y_hero_end + g["gap_hero_cards"]
     # kartu
@@ -866,7 +878,7 @@ def render(layout, land, out_path):
     for ri, row in enumerate(rows):
         y_row_end = y
         for i, st in enumerate(row):
-            ye = draw_card(d, MARGIN + i * (colw5 + 10), y, colw5, st, g)
+            ye = draw_card(img, d, MARGIN + i * (colw5 + 10), y, colw5, st, g)
             y_row_end = max(y_row_end, ye)
         y = y_row_end
         if ri < len(rows) - 1:
