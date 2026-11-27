@@ -625,7 +625,7 @@ def draw_map(d, x, y, w, h, land):
     """
     NUMBERED = {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 15}
     title_f = font(SANS_B, 12)
-    d.text((x, y), "WHERE IT HAPPENED — 36 PLACES", font=title_f, fill=INK)
+    d.text((x, y), "WHERE IT HAPPENED — 36 PLACES · 39 STORIES", font=title_f, fill=INK)
     my = y + 18
     mh = h - 18 - 39  # sisa untuk peta (legenda 3 baris x 13 px)
     d.rectangle([x, my, x + w - 1, my + mh - 1], fill=SEA, outline=LINE, width=1)
@@ -667,7 +667,7 @@ def draw_map(d, x, y, w, h, land):
            font=leg_f, fill=INK)
     d.text((x, my + mh + 17), "MIDDLE EAST 5 · AFRICA 6 · ASIA 5 · OCEANIA 2",
            font=leg_f, fill=INK)
-    d.text((x, my + mh + 30), "Numbered pins mark the pictured stories.",
+    d.text((x, my + mh + 30), "Stories per region. Numbered pins mark the pictured stories.",
            font=leg_f, fill=MUTED)
     return y + h
 
