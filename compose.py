@@ -667,10 +667,20 @@ def draw_map(d, x, y, w, h, land):
         tw = d.textlength(t, font=pin_f)
         d.text((dp[0] - tw / 2, dp[1] - 5), t, font=pin_f, fill=WHITE)
     leg_f = font(SANS, 10)
-    d.text((x, my + mh + 4), "NORTH AMERICA 6 · SOUTH AMERICA 2 · EUROPE 13",
-           font=leg_f, fill=INK)
-    d.text((x, my + mh + 17), "MIDDLE EAST 5 · AFRICA 6 · ASIA 5 · OCEANIA 2",
-           font=leg_f, fill=INK)
+    # Nama wilayah diwarnai wilayahnya: legenda sekaligus kunci warna untuk
+    # angka berwarna di daftar (QA kritikus 2).
+    def leg_line(y0, segments):
+        xx = x
+        for text, color in segments:
+            d.text((xx, y0), text, font=leg_f, fill=color)
+            xx += d.textlength(text, font=leg_f)
+    leg_line(my + mh + 4, [("NORTH AMERICA", REGION["NA"]), (" 6 · ", INK),
+                           ("SOUTH AMERICA", REGION["SA"]), (" 2 · ", INK),
+                           ("EUROPE", REGION["EU"]), (" 13", INK)])
+    leg_line(my + mh + 17, [("MIDDLE EAST", REGION["ME"]), (" 5 · ", INK),
+                            ("AFRICA", REGION["AF"]), (" 6 · ", INK),
+                            ("ASIA", REGION["AS"]), (" 5 · ", INK),
+                            ("OCEANIA", REGION["OC"]), (" 2", INK)])
     d.text((x, my + mh + 30), "Stories per region. Numbered pins mark the pictured stories.",
            font=leg_f, fill=MUTED)
     return y + h
